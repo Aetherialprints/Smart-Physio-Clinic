@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: pcms_db
+      POSTGRES_USER: pcms_user
+      POSTGRES_PASSWORD: pcms_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pcms_user -d pcms_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DJANGO_SECRET_KEY=pcms-dev-secret-key
+      - DJANGO_DEBUG=True
+      - DB_HOST=db
+      - DB_NAME=pcms_db
+      - DB_USER=pcms_user
+      - DB_PASSWORD=pcms_password
+      - REDIS_URL=redis://redis:6379/0
+      - CORS_ORIGINS=http://localhost:3000
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app/backend
+      - ./accounts:/app/accounts
+      - ./patients:/app/patients
+      - ./appointments:/app/appointments
+      - ./treatment_sessions:/app/treatment_sessions
+      - ./exercises:/app/exercises
+      - ./notifications:/app/notifications
+      - ./reports:/app/reports
+      - ./dashboard:/app/dashboard
+      - media_files:/app/media
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000/api
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  media_files:

@@ -1,0 +1,19 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y \
+    gcc libpq-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY backend/requirements.txt* /app/requirements.txt* 2>/dev/null || true
+RUN pip install --no-cache-dir django djangorestframework djangorestframework-simplejwt \
+    django-cors-headers django-filter Pillow reportlab celery redis
+
+COPY . .
+
+RUN mkdir -p media staticfiles
+
+EXPOSE 8000
+
+CMD ["python", "manage.py", "migrate", "&&", "python", "manage.py", "runserver", "0.0.00:8000"]
