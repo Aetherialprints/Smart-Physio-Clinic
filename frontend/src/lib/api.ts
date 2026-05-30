@@ -50,7 +50,20 @@ class ApiClient {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ message: 'An error occurred' }));
-      throw new Error(error.message || error.detail || 'Request failed');
+      // Handle Django validation errors: { field: ["msg1", "msg2"] }
+      if (error.message || error.detail) {
+        throw new Error(error.message || error.detail);
+      }
+      // Flatten field-level errors into a readable string
+      const fieldErrors: string[] = [];
+      for (const [key, value] of Object.entries(error)) {
+        if (Array.isArray(value)) {
+          fieldErrors.push(...value);
+        } else if (typeof value === 'string') {
+          fieldErrors.push(value);
+        }
+      }
+      throw new Error(fieldErrors.join(' ') || 'Request failed');
     }
 
     if (response.status === 204) {
