@@ -9,7 +9,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'pcms-dev-secret-key-change-in-production-2026-x7k9m2p4')
 DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'
-ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,aetherialprints.com,www.aetherialprints.com').split(',')
+ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,10.1.1.97,84.8.216.241,aetherialprints.com,www.aetherialprints.com,app.aetherialprints.com').split(',')
 
 INSTALLED_APPS = [
     'django.contrib.admin',
