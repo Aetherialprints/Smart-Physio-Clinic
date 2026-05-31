@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { patientsApi, type Patient } from '@/services/patientService';
 import { Modal, Button, Badge } from '@/components/ui/Button';
 import {
@@ -21,7 +21,7 @@ export default function PatientsPage() {
     treatment_plan: '', total_sessions: 0, session_price: 0, medical_notes: '',
   });
 
-  const searchRef = useRef<NodeJS.Timeout>();
+  const searchRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => {
     if (searchRef.current) clearTimeout(searchRef.current);
