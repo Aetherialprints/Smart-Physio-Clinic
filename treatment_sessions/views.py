@@ -14,7 +14,10 @@ class SessionListCreateView(generics.ListCreateAPIView):
         return SessionSerializer
 
     def get_queryset(self):
+        user = self.request.user
         qs = PatientSession.objects.all()
+        if hasattr(user, 'role') and user.role == 'physiotherapist':
+            qs = qs.filter(physiotherapist=user)
         patient_id = self.request.query_params.get('patient')
         if patient_id:
             qs = qs.filter(patient_id=patient_id)

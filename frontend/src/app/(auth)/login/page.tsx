@@ -23,11 +23,6 @@ export default function LoginPage() {
 
     try {
       const data = await authApi.login(email, password);
-      // Store tokens first so getProfile() can use them
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('access_token', data.access);
-        localStorage.setItem('refresh_token', data.refresh);
-      }
       const profile = data.user || await authApi.getProfile();
       login(profile, data.access, data.refresh);
       router.push('/dashboard');

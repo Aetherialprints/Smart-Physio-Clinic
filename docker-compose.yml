@@ -1,75 +1,89 @@
-version: '3.8'
+version: '3.9'
 
 services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: pcms_db
-      POSTGRES_USER: pcms_user
-      POSTGRES_PASSWORD: pcms_password
+      POSTGRES_DB: ${DB_NAME:-pcms_db}
+      POSTGRES_USER: ${DB_USER:-pcms_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-pcms_password_change_me}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U pcms_user -d pcms_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-pcms_user} -d ${DB_NAME:-pcms_db}"]
       interval: 5s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
   backend:
     build:
       context: .
       dockerfile: Dockerfile.backend
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     environment:
-      - DJANGO_SECRET_KEY=pcms-dev-secret-key
-      - DJANGO_DEBUG=True
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-change-me-in-production}
+      - DJANGO_DEBUG=${DJANGO_DEBUG:-False}
+      - DJANGO_ALLOWED_HOSTS=${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1}
       - DB_HOST=db
-      - DB_NAME=pcms_db
-      - DB_USER=pcms_user
-      - DB_PASSWORD=pcms_password
+      - DB_NAME=${DB_NAME:-pcms_db}
+      - DB_USER=${DB_USER:-pcms_user}
+      - DB_PASSWORD=${DB_PASSWORD:-pcms_password_change_me}
+      - DB_PORT=5432
       - REDIS_URL=redis://redis:6379/0
-      - CORS_ORIGINS=http://localhost:3000
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000}
+      - USE_SQLITE=False
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
     volumes:
-      - ./backend:/app/backend
-      - ./accounts:/app/accounts
-      - ./patients:/app/patients
-      - ./appointments:/app/appointments
-      - ./treatment_sessions:/app/treatment_sessions
-      - ./exercises:/app/exercises
-      - ./notifications:/app/notifications
-      - ./reports:/app/reports
-      - ./dashboard:/app/dashboard
       - media_files:/app/media
+      - static_files:/app/staticfiles
+    restart: unless-stopped
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile.frontend
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8000/api
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000/api}
     depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - media_files:/var/www/media:ro
+      - static_files:/var/www/static:ro
+    depends_on:
+      - frontend
       - backend
+    restart: unless-stopped
 
 volumes:
   postgres_data:
   media_files:
+  static_files:

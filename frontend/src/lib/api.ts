@@ -2,6 +2,7 @@ import { API_BASE_URL } from './constants';
 
 interface FetchOptions extends RequestInit {
   requiresAuth?: boolean;
+  _retry?: boolean;
 }
 
 class ApiClient {
@@ -18,8 +19,34 @@ class ApiClient {
     return null;
   }
 
+  private getRefreshToken(): string | null {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('refresh_token');
+    }
+    return null;
+  }
+
+  private async refreshTokens(): Promise<boolean> {
+    const refresh = this.getRefreshToken();
+    if (!refresh) return false;
+    try {
+      const resp = await fetch(`${this.baseUrl}/auth/token/refresh/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh }),
+      });
+      if (!resp.ok) return false;
+      const data = await resp.json();
+      localStorage.setItem('access_token', data.access);
+      if (data.refresh) localStorage.setItem('refresh_token', data.refresh);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   async fetch<T>(endpoint: string, options: FetchOptions = {}): Promise<T> {
-    const { requiresAuth = true, ...fetchOptions } = options;
+    const { requiresAuth = true, _retry, ...fetchOptions } = options;
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -38,6 +65,20 @@ class ApiClient {
       headers,
     });
 
+    if (response.status === 401 && requiresAuth && !_retry) {
+      const refreshed = await this.refreshTokens();
+      if (refreshed) {
+        return this.fetch<T>(endpoint, { ...options, _retry: true });
+      }
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+      }
+      throw new Error('Unauthorized');
+    }
+
     if (response.status === 401) {
       if (typeof window !== 'undefined') {
         localStorage.removeItem('access_token');
@@ -50,11 +91,9 @@ class ApiClient {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ message: 'An error occurred' }));
-      // Handle Django validation errors: { field: ["msg1", "msg2"] }
       if (error.message || error.detail) {
         throw new Error(error.message || error.detail);
       }
-      // Flatten field-level errors into a readable string
       const fieldErrors: string[] = [];
       for (const [key, value] of Object.entries(error)) {
         if (Array.isArray(value)) {

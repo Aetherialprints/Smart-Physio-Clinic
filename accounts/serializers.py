@@ -33,9 +33,12 @@ class RegisterSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         if attrs['password'] != attrs.pop('password2'):
             raise serializers.ValidationError({'password': 'Passwords do not match'})
+        # Prevent role escalation: force default role for public registration
+        attrs.pop('role', None)
         return attrs
 
     def create(self, validated_data):
+        validated_data['role'] = User.Role.PHYSIOTHERAPIST
         return User.objects.create_user(**validated_data)
 
 

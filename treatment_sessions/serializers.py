@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.core.validators import MinValueValidator, MaxValueValidator
 from .models import PatientSession
 
 
@@ -10,6 +11,16 @@ class SessionSerializer(serializers.ModelSerializer):
         model = PatientSession
         fields = '__all__'
         read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def validate_pain_level_before(self, value):
+        if value is not None and (value < 0 or value > 10):
+            raise serializers.ValidationError('Pain level must be between 0 and 10')
+        return value
+
+    def validate_pain_level_after(self, value):
+        if value is not None and (value < 0 or value > 10):
+            raise serializers.ValidationError('Pain level must be between 0 and 10')
+        return value
 
 
 class SessionListSerializer(serializers.ModelSerializer):

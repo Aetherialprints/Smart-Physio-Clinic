@@ -3,12 +3,13 @@ FROM python:3.11-slim
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y \
-    gcc libpq-dev && \
+    gcc libpq-dev curl && \
     rm -rf /var/lib/apt/lists/*
 
-COPY backend/requirements.txt* /app/requirements.txt* 2>/dev/null || true
-RUN pip install --no-cache-dir django djangorestframework djangorestframework-simplejwt \
-    django-cors-headers django-filter Pillow reportlab celery redis
+RUN pip install --no-cache-dir \
+    django djangorestframework djangorestframework-simplejwt \
+    django-cors-headers django-filter Pillow reportlab \
+    celery redis gunicorn psycopg2-binary
 
 COPY . .
 
@@ -16,4 +17,7 @@ RUN mkdir -p media staticfiles
 
 EXPOSE 8000
 
-CMD ["python", "manage.py", "migrate", "&&", "python", "manage.py", "runserver", "0.0.00:8000"]
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/api/ || exit 1
+
+CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn backend.wsgi:application --bind 0.0.0.0:8000 --workers 4 --timeout 120"]

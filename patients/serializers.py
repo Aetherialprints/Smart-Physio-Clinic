@@ -14,7 +14,7 @@ class PatientSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'total_amount', 'remaining_balance', 'created_at', 'updated_at']
 
     def get_completed_sessions(self, obj):
-        return obj.sessions.count()
+        return obj.treatment_sessions.count()
 
 
 class PatientListSerializer(serializers.ModelSerializer):
@@ -32,7 +32,7 @@ class PatientListSerializer(serializers.ModelSerializer):
         ]
 
     def get_completed_sessions(self, obj):
-        return obj.sessions.count()
+        return obj.treatment_sessions.count()
 
 
 class PatientStatisticsSerializer(serializers.Serializer):

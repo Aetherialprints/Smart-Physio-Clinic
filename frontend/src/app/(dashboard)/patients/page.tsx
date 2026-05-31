@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { patientsApi, type Patient } from '@/services/patientService';
 import { Modal, Button, Badge } from '@/components/ui/Button';
 import {
@@ -21,7 +21,13 @@ export default function PatientsPage() {
     treatment_plan: '', total_sessions: 0, session_price: 0, medical_notes: '',
   });
 
-  useEffect(() => { loadPatients(); }, [search]);
+  const searchRef = useRef<NodeJS.Timeout>();
+
+  useEffect(() => {
+    if (searchRef.current) clearTimeout(searchRef.current);
+    searchRef.current = setTimeout(() => { loadPatients(); }, 300);
+    return () => { if (searchRef.current) clearTimeout(searchRef.current); };
+  }, [search]);
 
   const loadPatients = async () => {
     setLoading(true);

@@ -93,7 +93,7 @@ AUTH_PASSWORD_VALIDATORS = [
 AUTH_USER_MODEL = 'accounts.User'
 
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
+TIME_ZONE = os.environ.get('TIME_ZONE', 'Africa/Casablanca')
 USE_I18N = True
 USE_TZ = True
 
@@ -118,6 +118,14 @@ REST_FRAMEWORK = {
         'rest_framework.filters.SearchFilter',
         'rest_framework.filters.OrderingFilter',
     ],
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '20/minute',
+        'user': '60/minute',
+    },
 }
 
 SIMPLE_JWT = {
@@ -147,6 +155,9 @@ CELERY_BROKER_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
 
 CLINIC_NAME = os.environ.get('CLINIC_NAME', 'Smart Physio Clinic')
 CLINIC_PHONE = os.environ.get('CLINIC_PHONE', '+212 5 22 00 00 00')
-CLINIC_EMAIL = os.environ.get('CLINIC_EMAIL', 'contact@smartphysio.com')
+CELERY_RESULT_BACKEND = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+
 CLINIC_ADDRESS = os.environ.get('CLINIC_ADDRESS', '123 Medical Street, Casablanca, Morocco')
 CLINIC_LOGO = os.environ.get('CLINIC_LOGO', '')

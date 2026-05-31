@@ -44,6 +44,9 @@ class ExerciseProgramListCreateView(generics.ListCreateAPIView):
             qs = qs.filter(patient_id=patient_id)
         return qs.select_related('patient', 'created_by')
 
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+
 
 class ExerciseProgramDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = ExerciseProgram.objects.all()
